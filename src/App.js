@@ -1,6 +1,6 @@
-// src/App.js
 import React, { useState } from 'react';
-import { fetchCropRecommendations, fetchWeatherData } from './api';
+import axios from 'axios';
+import qs from 'qs';  // Import qs for encoding data as form-urlencoded
 
 const App = () => {
   const [recommendedCrops, setRecommendedCrops] = useState(null);
@@ -26,14 +26,39 @@ const App = () => {
     }));
   };
 
+  const fetchCropRecommendations = async (inputData) => {
+    try {
+      const formData = qs.stringify(inputData);  // Convert input data into form-urlencoded format
+      const response = await axios.post('http://127.0.0.1:5000/predict', formData, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',  // Send as form data
+        }
+      });
+      return response.data;  // Assume your backend sends 'result' and 'image'
+    } catch (error) {
+      console.error('Error fetching crop recommendations:', error);
+      throw error;  // Rethrow error to handle it in the component
+    }
+  };
+
+  const fetchWeatherData = async (lat, lon) => {
+    try {
+      // Example request for weather data; adjust as per your actual API structure
+      const response = await axios.get(`http://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=YOUR_API_KEY`);
+      return response.data;  // Return weather data
+    } catch (error) {
+      console.error('Error fetching weather data:', error);
+      throw error;  // Rethrow error to handle it in the component
+    }
+  };
+
   const handleCropSubmit = async (e) => {
     e.preventDefault();
     setError(null); // Clear previous errors
     try {
       const response = await fetchCropRecommendations(inputData);
-      // Assuming your backend returns an object with 'result' and 'image' fields
       if (response.result) {
-        setRecommendedCrops(response.result);
+        setRecommendedCrops(response.result);  // Update with the crop recommendation
       } else {
         setError("No recommendation found.");
       }
@@ -48,9 +73,8 @@ const App = () => {
     setError(null); // Clear previous errors
     try {
       const response = await fetchWeatherData(lat, lon);
-      // Assuming your backend returns an object with the weather data
-      if (response.weather_data) {
-        setWeather(response.weather_data);
+      if (response.weather) {
+        setWeather(response.weather);  // Set the weather data
       } else {
         setError("Failed to retrieve weather data.");
       }
@@ -95,10 +119,10 @@ const App = () => {
       {weather && (
         <div>
           <h3>Weather Data</h3>
-          <p>Temperature: {weather.temperature}°C</p>
-          <p>Humidity: {weather.humidity}%</p>
-          <p>Description: {weather.description}</p>
-          <p>Wind Speed: {weather.wind_speed} m/s</p>
+          <p>Temperature: {weather.main.temp}°C</p>
+          <p>Humidity: {weather.main.humidity}%</p>
+          <p>Description: {weather.weather[0].description}</p>
+          <p>Wind Speed: {weather.wind.speed} m/s</p>
         </div>
       )}
     </div>
